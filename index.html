@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>비품 라벨 스캐너</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+  :root {
+    --primary: #1a6b3c;
+    --primary-light: #e8f5ee;
+    --accent: #f0a500;
+    --danger: #c0392b;
+    --bg: #f5f7f5;
+    --card: #ffffff;
+    --border: #d8e8df;
+    --text: #1c2e24;
+    --muted: #6b8578;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  header {
+    background: var(--primary);
+    color: white;
+    padding: 16px 20px 14px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 { font-size: 17px; font-weight: 700; }
+  header p { font-size: 11px; opacity: 0.75; margin-top: 2px; }
+
+  .container { padding: 16px; max-width: 480px; margin: 0 auto; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 20px 0 8px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .info-box {
+    background: #fffbea;
+    border: 1px solid #f0d080;
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 12px;
+    color: #7a5c00;
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+
+  .config-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    padding: 8px 0;
+  }
+  .config-toggle svg { transition: transform 0.2s; }
+  .config-toggle.open svg { transform: rotate(180deg); }
+  .config-body { display: none; margin-top: 12px; }
+  .config-body.open { display: block; }
+
+  label.field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+
+  input[type="text"], input[type="url"] {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    margin-bottom: 12px;
+    outline: none;
+  }
+  input:focus { border-color: var(--primary); background: white; }
+
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    background: white;
+    overflow: hidden;
+  }
+  .upload-zone.has-image { border: none; padding: 0; }
+  .upload-zone img {
+    width: 100%;
+    border-radius: calc(var(--radius) - 2px);
+    display: block;
+    max-height: 220px;
+    object-fit: contain;
+    background: #f0f0f0;
+  }
+  .upload-zone .icon { font-size: 36px; margin-bottom: 10px; }
+  .upload-zone .hint { font-size: 13px; color: var(--muted); }
+  .upload-zone .hint b { color: var(--primary); }
+  #fileInput, #cameraInput { display: none; }
+
+  .btn-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  button {
+    font-family: 'Noto Sans KR', sans-serif;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  button:active { transform: scale(0.97); }
+
+  .btn-secondary {
+    background: white;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 11px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .btn-primary:disabled { background: #a0b8aa; cursor: not-allowed; }
+
+  .btn-submit {
+    background: var(--accent);
+    color: white;
+    padding: 15px;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    width: 100%;
+    font-weight: 700;
+    margin-top: 8px;
+  }
+
+  .result-row {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .result-row:last-child { border-bottom: none; }
+  .result-key {
+    font-size: 12px;
+    color: var(--muted);
+    min-width: 90px;
+    padding-top: 2px;
+    flex-shrink: 0;
+  }
+  .result-val {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    border: none;
+    background: transparent;
+    width: 100%;
+    outline: none;
+    font-family: 'Noto Sans KR', sans-serif;
+    padding: 2px 0;
+  }
+  .result-val:focus {
+    background: var(--primary-light);
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+
+  .status-box {
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-top: 10px;
+    display: none;
+  }
+  .status-box.loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+  .status-box.success { display: block; background: #e8f7ec; color: #1a6b3c; line-height: 1.7; }
+  .status-box.error   { display: block; background: #fde8e8; color: var(--danger); line-height: 1.7; }
+
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--primary);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 700;
+    margin-left: 6px;
+  }
+  .badge-green { background: #d2f0dd; color: #1a6b3c; }
+
+  .author-row { display: flex; gap: 10px; }
+  .author-row > div { flex: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📋 정보화 기기 라벨 등록</h1>
+  <p>광주여자상업고등학교 · 구글 폼 자동 저장</p>
+</header>
+
+<div class="container">
+
+  <div class="info-box">
+    📸 사진을 찍으면 AI가 자동으로 데이터를 읽어서<br>
+    구글 시트에 바로 저장해드려요!
+  </div>
+
+  <!-- ── API 키 설정 ── -->
+  <div class="section-label">⚙️ 설정</div>
+  <div class="card">
+    <div class="config-toggle" id="configToggle">
+      <span>Gemini API Key 설정</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="config-body" id="configBody">
+      <label class="field-label">Google Gemini API Key</label>
+      <input type="text" id="apiKey" placeholder="AIza..." />
+      <div style="font-size:11px; color:var(--muted); margin-bottom:12px;">
+        무료 발급: <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--primary);">aistudio.google.com/apikey</a>
+      </div>
+      <button class="btn-secondary" style="width:100%; font-size:13px;" onclick="saveConfig()">💾 저장</button>
+      <div id="configMsg" style="font-size:12px; color:var(--primary); margin-top:8px; display:none;"></div>
+    </div>
+  </div>
+
+  <!-- ── 작성자 정보 ── -->
+  <div class="section-label">👤 작성자 정보</div>
+  <div class="card">
+    <div class="author-row">
+      <div>
+        <label class="field-label">성명</label>
+        <input type="text" id="authorName" placeholder="홍길동" style="margin-bottom:0;" />
+      </div>
+      <div>
+        <label class="field-label">근무처</label>
+        <input type="text" id="authorDept" placeholder="교무실" style="margin-bottom:0;" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 사진 ── -->
+  <div class="section-label">📷 라벨 사진</div>
+  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+    <div class="icon">🏷️</div>
+    <div class="hint"><b>탭하여 갤러리에서 선택</b><br>또는 아래 버튼으로 직접 촬영</div>
+  </div>
+  <input type="file" id="fileInput" accept="image/*" onchange="handleFile(this)">
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleFile(this)">
+
+  <div class="btn-row">
+    <button class="btn-secondary" onclick="document.getElementById('cameraInput').click()">📸 직접 촬영</button>
+    <button class="btn-secondary" onclick="resetImage()">🔄 다시 선택</button>
+  </div>
+
+  <button class="btn-primary" id="extractBtn" onclick="extractData()" disabled>
+    🔍 AI로 데이터 추출
+  </button>
+
+  <div class="status-box" id="statusBox"></div>
+
+  <!-- ── 추출 결과 ── -->
+  <div id="resultSection" style="display:none;">
+    <div class="section-label">📝 추출된 데이터 <span class="badge badge-green">수정 가능</span></div>
+    <div class="card">
+      <div class="result-row"><span class="result-key">기관명</span><input class="result-val" id="r_org" type="text" placeholder="—"></div>
+      <div class="result-row"><span class="result-key">분류번호</span><input class="result-val" id="r_code" type="text" placeholder="—"></div>
+      <div class="result-row"><span class="result-key">품명</span><input class="result-val" id="r_name" type="text" placeholder="—"></div>
+      <div class="result-row"><span class="result-key">규격</span><input class="result-val" id="r_spec" type="text" placeholder="—"></div>
+      <div class="result-row"><span class="result-key">운용부서</span><input class="result-val" id="r_dept" type="text" placeholder="—"></div>
+      <div class="result-row"><span class="result-key">설치장소</span><input class="result-val" id="r_location" type="text" placeholder="—"></div>
+      <div class="result-row"><span class="result-key">비고</span><input class="result-val" id="r_note" type="text" placeholder="—"></div>
+      <div class="result-row"><span class="result-key">취득일</span><input class="result-val" id="r_date" type="text" placeholder="—"></div>
+      <div class="result-row"><span class="result-key">고유번호</span><input class="result-val" id="r_uid" type="text" placeholder="—"></div>
+      <div class="result-row"><span class="result-key">단가</span><input class="result-val" id="r_price" type="text" placeholder="—"></div>
+      <div class="result-row"><span class="result-key">내용연수</span><input class="result-val" id="r_life" type="text" placeholder="—"></div>
+    </div>
+
+    <div style="font-size:12px; color:var(--muted); padding: 0 4px; margin-top:4px;">
+      ✏️ 잘못 인식된 항목은 직접 수정 후 제출하세요
+    </div>
+
+    <button class="btn-submit" onclick="submitToForm()">
+      📊 구글 시트에 저장
+    </button>
+    <div class="status-box" id="submitStatus"></div>
+  </div>
+
+</div>
+
+<script>
+// ── 구글 폼 설정 ──
+const FORM_BASE = 'https://docs.google.com/forms/d/e/1FAIpQLSduKqfjhJQYA7Mh-R-TA5uTNdOCJy9rWGxcpdibhNiBbH7n1A/formResponse';
+const ENTRY = {
+  timestamp:  'entry.2049544721',
+  authorName: 'entry.1281562310',
+  authorDept: 'entry.2112433836',
+  org:        'entry.223392199',
+  code:       'entry.517721628',
+  name:       'entry.2016200062',
+  spec:       'entry.1932848817',
+  dept:       'entry.956925357',
+  location:   'entry.1388362826',
+  note:       'entry.200624924',
+  date:       'entry.347675849',
+  uid:        'entry.279696650',
+  price:      'entry.953395750',
+  life:       'entry.925399621',
+};
+
+let imageBase64 = null;
+let imageMimeType = 'image/jpeg';
+
+function saveConfig() {
+  localStorage.setItem('geminiKey', document.getElementById('apiKey').value.trim());
+  const msg = document.getElementById('configMsg');
+  msg.style.display = 'block';
+  msg.textContent = '✅ 저장됨';
+  setTimeout(() => { msg.style.display = 'none'; }, 2000);
+}
+
+function loadConfig() {
+  const gk = localStorage.getItem('geminiKey');
+  if (gk) document.getElementById('apiKey').value = gk;
+  const an = localStorage.getItem('authorName');
+  const ad = localStorage.getItem('authorDept');
+  if (an) document.getElementById('authorName').value = an;
+  if (ad) document.getElementById('authorDept').value = ad;
+}
+
+document.getElementById('configToggle').addEventListener('click', function() {
+  this.classList.toggle('open');
+  document.getElementById('configBody').classList.toggle('open');
+});
+
+document.getElementById('authorName').addEventListener('change', function() {
+  localStorage.setItem('authorName', this.value);
+});
+document.getElementById('authorDept').addEventListener('change', function() {
+  localStorage.setItem('authorDept', this.value);
+});
+
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  imageMimeType = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    imageBase64 = dataUrl.split(',')[1];
+    const zone = document.getElementById('uploadZone');
+    zone.innerHTML = `<img src="${dataUrl}" alt="라벨 이미지">`;
+    zone.classList.add('has-image');
+    zone.onclick = null;
+    document.getElementById('extractBtn').disabled = false;
+    document.getElementById('resultSection').style.display = 'none';
+    setStatus('statusBox', '', '');
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetImage() {
+  imageBase64 = null;
+  const zone = document.getElementById('uploadZone');
+  zone.innerHTML = `
+    <div class="icon">🏷️</div>
+    <div class="hint"><b>탭하여 갤러리에서 선택</b><br>또는 아래 버튼으로 직접 촬영</div>`;
+  zone.classList.remove('has-image');
+  zone.onclick = () => document.getElementById('fileInput').click();
+  document.getElementById('extractBtn').disabled = true;
+  document.getElementById('resultSection').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('cameraInput').value = '';
+  setStatus('statusBox', '', '');
+}
+
+function setStatus(id, type, msg) {
+  const box = document.getElementById(id);
+  box.className = 'status-box';
+  if (!type) { box.style.display = 'none'; return; }
+  box.classList.add(type);
+  if (type === 'loading') {
+    box.innerHTML = `<div class="spinner"></div><span>${msg}</span>`;
+  } else {
+    box.innerHTML = msg;
+  }
+}
+
+async function extractData() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) {
+    alert('⚠️ 설정에서 Gemini API Key를 먼저 입력하고 저장해주세요!');
+    document.getElementById('configToggle').classList.add('open');
+    document.getElementById('configBody').classList.add('open');
+    return;
+  }
+
+  document.getElementById('extractBtn').disabled = true;
+  setStatus('statusBox', 'loading', 'AI가 라벨 데이터를 읽는 중...');
+
+  const prompt = `이 이미지는 학교 비품에 붙어있는 라벨 스티커입니다.
+이미지에서 다음 항목들을 정확히 추출하여 JSON 형식으로만 응답해주세요.
+항목이 없거나 읽을 수 없으면 빈 문자열("")로 반환하세요.
+
+{
+  "org": "기관명(학교명)",
+  "code": "분류번호",
+  "name": "품명",
+  "spec": "규격",
+  "dept": "운용부서",
+  "location": "설치장소",
+  "note": "비고",
+  "date": "취득일",
+  "uid": "고유번호",
+  "price": "단가(숫자와 쉼표만, 예: 1,450,000)",
+  "life": "내용연수(숫자만, 예: 5)"
+}
+
+반드시 JSON만 반환하고 다른 텍스트나 마크다운은 절대 포함하지 마세요.`;
+
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: imageMimeType, data: imageBase64 } },
+            { text: prompt }
+          ]
+        }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || `오류 (${response.status})`);
+    }
+
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    const fields = ['org','code','name','spec','dept','location','note','date','uid','price','life'];
+    fields.forEach(f => {
+      const el = document.getElementById('r_' + f);
+      if (el) el.value = parsed[f] || '';
+    });
+
+    document.getElementById('resultSection').style.display = 'block';
+    setStatus('statusBox', 'success', '✅ 데이터 추출 완료! 확인 후 제출하세요.');
+    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+
+  } catch(e) {
+    setStatus('statusBox', 'error', '❌ ' + e.message);
+  } finally {
+    document.getElementById('extractBtn').disabled = false;
+  }
+}
+
+async function submitToForm() {
+  setStatus('submitStatus', 'loading', '구글 시트에 저장 중...');
+
+  const now = new Date().toLocaleString('ko-KR');
+  const authorName = document.getElementById('authorName').value.trim();
+  const authorDept = document.getElementById('authorDept').value.trim();
+
+  const formData = new FormData();
+  formData.append(ENTRY.timestamp,  now);
+  formData.append(ENTRY.authorName, authorName);
+  formData.append(ENTRY.authorDept, authorDept);
+  formData.append(ENTRY.org,        document.getElementById('r_org').value);
+  formData.append(ENTRY.code,       document.getElementById('r_code').value);
+  formData.append(ENTRY.name,       document.getElementById('r_name').value);
+  formData.append(ENTRY.spec,       document.getElementById('r_spec').value);
+  formData.append(ENTRY.dept,       document.getElementById('r_dept').value);
+  formData.append(ENTRY.location,   document.getElementById('r_location').value);
+  formData.append(ENTRY.note,       document.getElementById('r_note').value);
+  formData.append(ENTRY.date,       document.getElementById('r_date').value);
+  formData.append(ENTRY.uid,        document.getElementById('r_uid').value);
+  formData.append(ENTRY.price,      document.getElementById('r_price').value);
+  formData.append(ENTRY.life,       document.getElementById('r_life').value);
+
+  try {
+    await fetch(FORM_BASE, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: formData
+    });
+
+    setStatus('submitStatus', 'success',
+      `✅ 구글 시트에 저장 완료!<br>
+       <small style="color:var(--muted);">${now} · ${authorName} · ${document.getElementById('r_name').value}</small>`
+    );
+  } catch(e) {
+    setStatus('submitStatus', 'error', '❌ ' + e.message);
+  }
+}
+
+loadConfig();
+</script>
+</body>
+</html>
