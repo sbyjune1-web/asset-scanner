@@ -10,7 +10,6 @@
   :root {
     --primary: #1a6b3c;
     --primary-light: #e8f5ee;
-    --primary-mid: #2d8a56;
     --accent: #f0a500;
     --danger: #c0392b;
     --bg: #f5f7f5;
@@ -41,7 +40,7 @@
     top: 0;
     z-index: 100;
   }
-  header h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+  header h1 { font-size: 17px; font-weight: 700; }
   header p { font-size: 11px; opacity: 0.75; margin-top: 2px; }
 
   .free-badge {
@@ -85,7 +84,6 @@
     line-height: 1.7;
     margin-bottom: 12px;
   }
-  .info-box a { color: #b07d00; font-weight: 600; }
 
   .config-toggle {
     display: flex;
@@ -110,7 +108,7 @@
     margin-bottom: 5px;
   }
 
-  input[type="text"], input[type="url"], select {
+  input[type="text"], input[type="url"] {
     width: 100%;
     padding: 10px 12px;
     font-size: 14px;
@@ -121,9 +119,8 @@
     color: var(--text);
     margin-bottom: 12px;
     outline: none;
-    appearance: none;
   }
-  input:focus, select:focus { border-color: var(--primary); background: white; }
+  input:focus { border-color: var(--primary); background: white; }
 
   .upload-zone {
     border: 2px dashed var(--border);
@@ -131,12 +128,9 @@
     padding: 28px 16px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.2s;
     background: white;
-    position: relative;
     overflow: hidden;
   }
-  .upload-zone:active { background: var(--primary-light); border-color: var(--primary); }
   .upload-zone.has-image { border: none; padding: 0; }
   .upload-zone img {
     width: 100%;
@@ -183,7 +177,7 @@
     border-radius: var(--radius-sm);
     font-size: 15px;
     width: 100%;
-    margin-top: 4px;
+    margin-top: 8px;
   }
   .btn-primary:disabled { background: #a0b8aa; cursor: not-allowed; }
 
@@ -245,8 +239,8 @@
     background: var(--primary-light);
     color: var(--primary);
   }
-  .status-box.success { display: block; background: #e8f7ec; color: #1a6b3c; }
-  .status-box.error   { display: block; background: #fde8e8; color: var(--danger); }
+  .status-box.success { display: block; background: #e8f7ec; color: #1a6b3c; line-height: 1.6; }
+  .status-box.error   { display: block; background: #fde8e8; color: var(--danger); line-height: 1.6; }
 
   .spinner {
     width: 18px; height: 18px;
@@ -281,41 +275,37 @@
     color: #333;
     white-space: pre-wrap;
     overflow-x: auto;
+    line-height: 1.6;
   }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>📋 비품 라벨 스캐너 <span class="free-badge">무료</span></h1>
-  <p>광주여자상업고등학교 · Gemini AI 기반</p>
+  <h1>📋 비품 라벨 스캐너 <span class="free-badge">API 불필요</span></h1>
+  <p>광주여자상업고등학교 · 구글 드라이브 OCR 기반</p>
 </header>
 
 <div class="container">
 
-  <!-- ── 안내 ── -->
   <div class="info-box">
-    🎉 <b>Google Gemini API 무료 티어 사용</b><br>
-    하루 1,500회, 분당 15회까지 <b>완전 무료</b>!<br>
-    API 키 발급: <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>
+    ✅ <b>API 키 없이 완전 무료!</b><br>
+    구글 드라이브 내장 OCR로 텍스트 추출 →<br>
+    구글 시트에 자동 저장되는 방식이에요.
   </div>
 
   <!-- ── 설정 ── -->
   <div class="section-label">⚙️ 설정</div>
   <div class="card">
     <div class="config-toggle" id="configToggle">
-      <span>API 키 및 시트 URL 설정</span>
+      <span>Apps Script URL 설정</span>
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
     </div>
     <div class="config-body" id="configBody">
-      <label class="field-label">Google Gemini API Key</label>
-      <input type="text" id="apiKey" placeholder="AIza..." />
-
       <label class="field-label">Google Apps Script 웹앱 URL</label>
       <input type="url" id="gasUrl" placeholder="https://script.google.com/macros/s/.../exec" />
-
       <button class="btn-secondary" style="width:100%; font-size:13px;" onclick="saveConfig()">💾 저장</button>
       <div id="configMsg" style="font-size:12px; color:var(--primary); margin-top:8px; display:none;"></div>
     </div>
@@ -350,8 +340,8 @@
     <button class="btn-secondary" onclick="resetImage()">🔄 다시 선택</button>
   </div>
 
-  <button class="btn-primary" id="extractBtn" onclick="extractData()" disabled>
-    🔍 Gemini AI로 데이터 추출
+  <button class="btn-primary" id="extractBtn" onclick="extractAndSave()" disabled>
+    🔍 OCR 추출 후 시트에 저장
   </button>
 
   <div class="status-box" id="statusBox"></div>
@@ -373,52 +363,152 @@
       <div class="result-row"><span class="result-key">내용연수</span><input class="result-val" id="r_life" type="text" placeholder="—"></div>
     </div>
 
-    <button class="btn-submit" id="submitBtn" onclick="submitToSheets()">
-      📊 구글 스프레드시트에 저장
+    <div style="font-size:12px; color:var(--muted); margin-top:4px; padding: 0 4px;">
+      ✏️ 잘못 인식된 항목은 직접 수정 후 저장하세요
+    </div>
+
+    <button class="btn-submit" id="submitBtn" onclick="saveOnly()">
+      📊 수정 후 구글 시트에 다시 저장
     </button>
     <div class="status-box" id="submitStatus"></div>
   </div>
 
-  <!-- ── 사용 안내 ── -->
-  <div class="section-label">📖 처음 설정 방법</div>
+  <!-- ── Apps Script 코드 안내 ── -->
+  <div class="section-label">📖 Apps Script 설정 방법</div>
   <div class="card" style="font-size:13px; line-height:1.9; color:var(--muted);">
-
-    <div style="margin-bottom:10px; color:var(--text); font-weight:600;">① Gemini API Key 발급 (무료)</div>
-    1. <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--primary);">aistudio.google.com/apikey</a> 접속<br>
-    2. 구글 계정 로그인 → <b style="color:var(--text);">Create API Key</b> 클릭<br>
-    3. 생성된 키 복사 → 위 설정에 붙여넣기<br><br>
-
-    <div style="margin-bottom:6px; color:var(--text); font-weight:600;">② Google Apps Script 설정</div>
-    <a href="https://script.google.com" target="_blank" style="color:var(--primary);">script.google.com</a>에서 새 프로젝트 생성 후 아래 코드 붙여넣기:
+    <div style="color:var(--text); font-weight:600; margin-bottom:8px;">① script.google.com → 새 프로젝트</div>
+    <div style="color:var(--text); font-weight:600; margin-bottom:4px;">② 서비스 추가 필수!</div>
+    왼쪽 <b style="color:var(--text);">"서비스(+)"</b> 클릭 →
+    <b style="color:var(--text);">Drive API</b> 추가<br><br>
+    <div style="color:var(--text); font-weight:600; margin-bottom:4px;">③ 아래 코드 붙여넣기</div>
     <div class="guide-code">function doPost(e) {
-  const data = JSON.parse(e.postData.contents);
-  const sheet = SpreadsheetApp
-    .getActiveSpreadsheet()
-    .getActiveSheet();
+  try {
+    const params = JSON.parse(e.postData.contents);
+    const imageBase64 = params.imageBase64;
+    const mimeType = params.mimeType || 'image/jpeg';
+    const authorName = params.authorName || '';
+    const authorDept = params.authorDept || '';
 
-  if (sheet.getLastRow() === 0) {
+    const blob = Utilities.newBlob(
+      Utilities.base64Decode(imageBase64),
+      mimeType,
+      'label_temp.jpg'
+    );
+
+    const folder = DriveApp.getRootFolder();
+    const file = folder.createFile(blob);
+
+    const resource = {
+      title: 'ocr_temp',
+      mimeType: MimeType.GOOGLE_DOCS,
+      parents: [{ id: folder.getId() }]
+    };
+    const ocrFile = Drive.Files.insert(
+      resource, blob, { ocr: true, ocrLanguage: 'ko' }
+    );
+
+    const doc = DocumentApp.openById(ocrFile.id);
+    const text = doc.getBody().getText();
+
+    file.setTrashed(true);
+    DriveApp.getFileById(ocrFile.id).setTrashed(true);
+
+    const parsed = parseLabel(text);
+
+    const sheet = SpreadsheetApp
+      .getActiveSpreadsheet()
+      .getActiveSheet();
+
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow([
+        '저장시각','성명','근무처','기관명',
+        '분류번호','품명','규격','운용부서',
+        '설치장소','비고','취득일','고유번호',
+        '단가','내용연수','원본텍스트'
+      ]);
+      sheet.getRange(1,1,1,15)
+        .setBackground('#1a6b3c')
+        .setFontColor('white')
+        .setFontWeight('bold');
+    }
+
     sheet.appendRow([
-      '저장시각','성명','근무처','기관명',
-      '분류번호','품명','규격','운용부서',
-      '설치장소','비고','취득일','고유번호',
-      '단가','내용연수'
+      new Date().toLocaleString('ko-KR'),
+      authorName, authorDept,
+      parsed.org, parsed.code, parsed.name,
+      parsed.spec, parsed.dept, parsed.location,
+      parsed.note, parsed.date, parsed.uid,
+      parsed.price, parsed.life,
+      text.replace(/\n/g,' ').substring(0,200)
     ]);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        ok: true, parsed: parsed, rawText: text
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        ok: false, error: err.message
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function parseLabel(text) {
+  const result = {
+    org:'', code:'', name:'', spec:'',
+    dept:'', location:'', note:'',
+    date:'', uid:'', price:'', life:''
+  };
+  const lines = text.split('\n')
+    .map(l => l.trim()).filter(l => l);
+
+  if (lines.length > 0 &&
+      !lines[0].includes(':') &&
+      !lines[0].includes('번호')) {
+    result.org = lines[0];
   }
 
-  sheet.appendRow([
-    data.timestamp, data.authorName,
-    data.authorDept, data.org, data.code,
-    data.name, data.spec, data.dept,
-    data.location, data.note, data.date,
-    data.uid, data.price, data.life
-  ]);
+  lines.forEach(line => {
+    if (line.includes('분류번호'))
+      result.code = extract(line,'분류번호');
+    else if (line.includes('품명'))
+      result.name = extract(line,'품명');
+    else if (line.includes('규격'))
+      result.spec = extract(line,'규격');
+    else if (line.includes('운용부서'))
+      result.dept = extract(line,'운용부서');
+    else if (line.includes('설치장소'))
+      result.location = extract(line,'설치장소');
+    else if (line.includes('비고'))
+      result.note = extract(line,'비고');
+    else if (line.includes('취득일'))
+      result.date = extract(line,'취득일');
+    else if (line.includes('고유번호'))
+      result.uid = extract(line,'고유번호');
+    else if (line.includes('단가'))
+      result.price = extract(line,'단가');
+    else if (line.includes('내용연수'))
+      result.life = extract(line,'내용연수');
+  });
+  return result;
+}
 
-  return ContentService
-    .createTextOutput(JSON.stringify({ok:true}))
-    .setMimeType(ContentService.MimeType.JSON);
+function extract(line, key) {
+  return line.replace(key,'')
+    .replace(/[:：\s]+/,'').trim();
 }</div>
-    <div style="margin-top:10px;">
-      📌 <b style="color:var(--text);">배포:</b> 배포 → 새 배포 → 웹 앱 → 액세스: <b style="color:var(--text);">모든 사용자</b> → URL 복사
+
+    <div style="margin-top:12px; color:var(--text); font-weight:600;">④ 배포</div>
+    배포 → 새 배포 → 웹 앱<br>
+    액세스: <b style="color:var(--text);">모든 사용자</b> → 배포 → URL 복사<br><br>
+
+    <div style="background: #fff3cd; border-radius:8px; padding:10px; font-size:12px; color:#7a5c00;">
+      ⚠️ <b>중요!</b> 스프레드시트를 먼저 열어둔 상태에서 Apps Script를 실행해야 해요.<br>
+      스크립트 → 편집기 상단 스프레드시트 아이콘으로 연결하세요.
     </div>
   </div>
 
@@ -429,7 +519,6 @@ let imageBase64 = null;
 let imageMimeType = 'image/jpeg';
 
 function saveConfig() {
-  localStorage.setItem('geminiKey', document.getElementById('apiKey').value.trim());
   localStorage.setItem('gasUrl', document.getElementById('gasUrl').value.trim());
   const msg = document.getElementById('configMsg');
   msg.style.display = 'block';
@@ -438,9 +527,7 @@ function saveConfig() {
 }
 
 function loadConfig() {
-  const gk = localStorage.getItem('geminiKey');
   const gu = localStorage.getItem('gasUrl');
-  if (gk) document.getElementById('apiKey').value = gk;
   if (gu) document.getElementById('gasUrl').value = gu;
   const an = localStorage.getItem('authorName');
   const ad = localStorage.getItem('authorDept');
@@ -474,7 +561,7 @@ function handleFile(input) {
     zone.onclick = null;
     document.getElementById('extractBtn').disabled = false;
     document.getElementById('resultSection').style.display = 'none';
-    setStatus('', '');
+    setStatus('statusBox', '', '');
   };
   reader.readAsDataURL(file);
 }
@@ -491,11 +578,11 @@ function resetImage() {
   document.getElementById('resultSection').style.display = 'none';
   document.getElementById('fileInput').value = '';
   document.getElementById('cameraInput').value = '';
-  setStatus('', '');
+  setStatus('statusBox', '', '');
 }
 
-function setStatus(type, msg) {
-  const box = document.getElementById('statusBox');
+function setStatus(id, type, msg) {
+  const box = document.getElementById(id);
   box.className = 'status-box';
   if (!type) { box.style.display = 'none'; return; }
   box.classList.add(type);
@@ -506,136 +593,87 @@ function setStatus(type, msg) {
   }
 }
 
-async function extractData() {
-  const apiKey = document.getElementById('apiKey').value.trim();
-  if (!apiKey) {
-    alert('⚠️ 설정에서 Gemini API Key를 먼저 입력해주세요.\naistudio.google.com/apikey 에서 무료로 발급받을 수 있어요!');
+async function extractAndSave() {
+  const gasUrl = document.getElementById('gasUrl').value.trim();
+  if (!gasUrl) {
+    alert('⚠️ 설정에서 Apps Script URL을 입력해주세요.');
     document.getElementById('configToggle').classList.add('open');
     document.getElementById('configBody').classList.add('open');
     return;
   }
-  if (!imageBase64) {
-    alert('⚠️ 이미지를 먼저 선택해주세요.');
-    return;
-  }
+  if (!imageBase64) return;
 
   document.getElementById('extractBtn').disabled = true;
-  setStatus('loading', 'Gemini AI가 라벨을 분석 중...');
+  setStatus('statusBox', 'loading', '구글 드라이브 OCR로 텍스트 추출 중... (10~20초 소요)');
 
-  const prompt = `이 이미지는 학교 비품에 붙어있는 라벨 스티커입니다.
-이미지에서 다음 항목들을 정확히 추출하여 JSON 형식으로만 응답해주세요.
-항목이 없거나 읽을 수 없으면 빈 문자열("")로 반환하세요.
-
-{
-  "org": "기관명(학교명)",
-  "code": "분류번호",
-  "name": "품명",
-  "spec": "규격",
-  "dept": "운용부서",
-  "location": "설치장소",
-  "note": "비고",
-  "date": "취득일",
-  "uid": "고유번호",
-  "price": "단가(숫자와 쉼표만, 예: 1,450,000)",
-  "life": "내용연수(숫자만, 예: 5)"
-}
-
-반드시 JSON만 반환하고 다른 텍스트나 마크다운 코드블록은 절대 포함하지 마세요.`;
+  const payload = {
+    imageBase64,
+    mimeType: imageMimeType,
+    authorName: document.getElementById('authorName').value.trim(),
+    authorDept: document.getElementById('authorDept').value.trim(),
+  };
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
-    const response = await fetch(url, {
+    const res = await fetch(gasUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            {
-              inline_data: {
-                mime_type: imageMimeType,
-                data: imageBase64
-              }
-            },
-            { text: prompt }
-          ]
-        }],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 512
-        }
-      })
+      body: JSON.stringify(payload)
     });
 
-    if (!response.ok) {
-      const err = await response.json();
-      const msg = err.error?.message || `API 오류 (${response.status})`;
-      if (response.status === 400 && msg.includes('API_KEY')) {
-        throw new Error('API Key가 올바르지 않습니다. 설정을 확인해주세요.');
-      }
-      throw new Error(msg);
-    }
+    const data = await res.json();
 
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!data.ok) throw new Error(data.error || '알 수 없는 오류');
 
-    let parsed;
-    try {
-      const clean = text.replace(/```json|```/g, '').trim();
-      parsed = JSON.parse(clean);
-    } catch(e) {
-      throw new Error('응답 파싱 실패. 다시 시도해주세요.\n' + text.substring(0, 80));
-    }
-
+    const p = data.parsed;
     const fields = ['org','code','name','spec','dept','location','note','date','uid','price','life'];
     fields.forEach(f => {
       const el = document.getElementById('r_' + f);
-      if (el) el.value = parsed[f] || '';
+      if (el) el.value = p[f] || '';
     });
 
     document.getElementById('resultSection').style.display = 'block';
-    setStatus('success', '✅ 데이터 추출 완료! 내용을 확인하고 필요하면 수정 후 저장하세요.');
-    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setStatus('statusBox', 'success',
+      `✅ OCR 추출 및 시트 저장 완료!<br>
+       <small style="color:var(--muted);">원본 텍스트: ${(data.rawText || '').substring(0, 80)}...</small>`
+    );
+    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
 
-  } catch(e) {
-    setStatus('error', '❌ ' + e.message);
+  } catch(err) {
+    setStatus('statusBox', 'error',
+      `❌ 오류: ${err.message}<br>
+       <small>Apps Script URL과 Drive API 서비스 추가 여부를 확인해주세요.</small>`
+    );
   } finally {
     document.getElementById('extractBtn').disabled = false;
   }
 }
 
-async function submitToSheets() {
+async function saveOnly() {
   const gasUrl = document.getElementById('gasUrl').value.trim();
-  if (!gasUrl) {
-    alert('⚠️ 설정에서 Google Apps Script URL을 입력해주세요.');
-    document.getElementById('configToggle').classList.add('open');
-    document.getElementById('configBody').classList.add('open');
-    return;
-  }
-
-  const authorName = document.getElementById('authorName').value.trim();
-  const authorDept = document.getElementById('authorDept').value.trim();
-
-  const payload = {
-    timestamp: new Date().toLocaleString('ko-KR'),
-    authorName, authorDept,
-    org:      document.getElementById('r_org').value,
-    code:     document.getElementById('r_code').value,
-    name:     document.getElementById('r_name').value,
-    spec:     document.getElementById('r_spec').value,
-    dept:     document.getElementById('r_dept').value,
-    location: document.getElementById('r_location').value,
-    note:     document.getElementById('r_note').value,
-    date:     document.getElementById('r_date').value,
-    uid:      document.getElementById('r_uid').value,
-    price:    document.getElementById('r_price').value,
-    life:     document.getElementById('r_life').value,
-  };
+  if (!gasUrl) { alert('Apps Script URL을 설정해주세요.'); return; }
 
   document.getElementById('submitBtn').disabled = true;
-  const sbox = document.getElementById('submitStatus');
-  sbox.className = 'status-box loading';
-  sbox.innerHTML = '<div class="spinner"></div><span>스프레드시트에 저장 중...</span>';
+  setStatus('submitStatus', 'loading', '수정된 데이터 저장 중...');
+
+  const payload = {
+    imageBase64: 'MANUAL_EDIT',
+    mimeType: 'text/plain',
+    authorName: document.getElementById('authorName').value.trim(),
+    authorDept: document.getElementById('authorDept').value.trim(),
+    manualData: {
+      org:      document.getElementById('r_org').value,
+      code:     document.getElementById('r_code').value,
+      name:     document.getElementById('r_name').value,
+      spec:     document.getElementById('r_spec').value,
+      dept:     document.getElementById('r_dept').value,
+      location: document.getElementById('r_location').value,
+      note:     document.getElementById('r_note').value,
+      date:     document.getElementById('r_date').value,
+      uid:      document.getElementById('r_uid').value,
+      price:    document.getElementById('r_price').value,
+      life:     document.getElementById('r_life').value,
+    }
+  };
 
   try {
     await fetch(gasUrl, {
@@ -644,13 +682,9 @@ async function submitToSheets() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-
-    sbox.className = 'status-box success';
-    sbox.innerHTML = `✅ 저장 완료!<br><small style="color:var(--muted);">${payload.timestamp} · ${authorName || '—'} · ${payload.name || '—'}</small>`;
-
-  } catch(e) {
-    sbox.className = 'status-box error';
-    sbox.innerHTML = '❌ 저장 실패: ' + e.message;
+    setStatus('submitStatus', 'success', '✅ 수정된 데이터가 저장되었습니다!');
+  } catch(err) {
+    setStatus('submitStatus', 'error', '❌ ' + err.message);
   } finally {
     document.getElementById('submitBtn').disabled = false;
   }
@@ -658,6 +692,5 @@ async function submitToSheets() {
 
 loadConfig();
 </script>
-
 </body>
 </html>
